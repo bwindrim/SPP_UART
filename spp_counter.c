@@ -205,34 +205,26 @@ static volatile uint32_t uart1_irq_count = 0;
 
 static void uart1_irq_handler(void){
     ++uart1_irq_count;
-    if (rxBuffer.irqIsEnabled){
-        while (uart_is_readable(uart1) && space_in_buffer(&rxBuffer)){
-            // Get char from UART.
-            char c = uart_getc(uart1);
-            // Put the char into the Rx circular buffer.
-            circ_buffer_put(&rxBuffer, c);
-            // Flag that we need a "send now" event, as we have data to send.
-            btstack_run_loop_poll_data_sources_from_irq();
-        }
-        // If there's no space left the Rx buffer then we disable the UART Rx interrupt.
-        if (!space_in_buffer(&rxBuffer)) {
-            rxBuffer.irqIsEnabled = false;
-            uart_set_irqs_enabled(uart1, rxBuffer.irqIsEnabled, txBuffer.irqIsEnabled);
-        }
+    while (uart_is_readable(uart1) && space_in_buffer(&rxBuffer)){
+        // Get char from UART and put it into the Rx circular buffer.
+        circ_buffer_put(&rxBuffer, uart_getc(uart1));
+        // Flag that we need a "send now" event, as we have data to send.
+        btstack_run_loop_poll_data_sources_from_irq();
+    }
+    // If there's no space left the Rx buffer then we disable the UART Rx interrupt.
+    if (rxBuffer.irqIsEnabled && !space_in_buffer(&rxBuffer)) {
+        rxBuffer.irqIsEnabled = false;
+        uart_set_irqs_enabled(uart1, rxBuffer.irqIsEnabled, txBuffer.irqIsEnabled);
     }
 
-    if (txBuffer.irqIsEnabled) {
-        while (uart_is_writable(uart1) && chars_in_buffer(&txBuffer)){
-            // Get the next char from the Tx circular buffer.
-            char c = circ_buffer_get(&txBuffer);
-            // Send the char to the UART.
-            uart_putc_raw(uart1, c);
-        }
-        // If there's nothing in the Tx buffer then we disable the UART Tx interrupt.
-        if (!chars_in_buffer(&txBuffer)){
-            txBuffer.irqIsEnabled = false;
-            uart_set_irqs_enabled(uart1, rxBuffer.irqIsEnabled, txBuffer.irqIsEnabled);
-        }
+    while (uart_is_writable(uart1) && chars_in_buffer(&txBuffer)){
+        // Get the next char from the Tx circular bufferand send it to the UART.
+        uart_putc_raw(uart1, circ_buffer_get(&txBuffer));
+    }
+    // If there's nothing in the Tx buffer then we disable the UART Tx interrupt.
+    if (txBuffer.irqIsEnabled && !chars_in_buffer(&txBuffer)){
+        txBuffer.irqIsEnabled = false;
+        uart_set_irqs_enabled(uart1, rxBuffer.irqIsEnabled, txBuffer.irqIsEnabled);
     }
 }
 
