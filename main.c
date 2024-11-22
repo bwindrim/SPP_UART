@@ -18,7 +18,7 @@
 #define UART_CTS_GPIO 6
 #define UART_RTS_GPIO 7
 
-int spp_counter_main(int argc, const char * argv[]);
+extern int spp_uart_init(void);
 
 int main(int argc, const char * argv[])
 {
@@ -46,7 +46,7 @@ int main(int argc, const char * argv[])
         return -1;
     }
 
-    spp_counter_main(0, NULL);
+    spp_uart_init();
     btstack_run_loop_execute();
 
     return 0;

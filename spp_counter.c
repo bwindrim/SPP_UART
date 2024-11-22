@@ -392,10 +392,7 @@ static void packet_handler (uint8_t packet_type, uint16_t channel, uint8_t *pack
 }
 /* LISTING_END */
 
-int spp_counter_main(int argc, const char * argv[]){
-    (void)argc;
-    (void)argv;
-
+int spp_uart_init(void){
     // inform about BTstack state
     hci_event_callback_registration.callback = &packet_handler;
     hci_add_event_handler(&hci_event_callback_registration);
