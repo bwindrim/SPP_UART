@@ -72,11 +72,6 @@ static uint16_t rfcomm_channel_id;
 static uint8_t  spp_service_buffer[150];
 static btstack_packet_callback_registration_t hci_event_callback_registration;
 
-// Ping-pong flags, shared between thread level and interrupt level.
-// Thread level can only set them to true if false, interrupt level can only set them to false if true
-static volatile bool rxIrqIsEnabled = true;
-static volatile bool txIrqIsEnabled = false;
-
 
 /* @section SPP Service Setup 
  *s
@@ -120,6 +115,9 @@ static void spp_service_setup(void){
 
 
 struct CircBuffer{
+    // Ping-pong flag, shared between thread level and interrupt level.
+    // Thread level can only set it to true if false, interrupt level can only set it to false if true
+    volatile bool irqIsEnabled;
     volatile uint8_t head, tail;
     char vChars[256];
 };
@@ -150,9 +148,9 @@ uint16_t circ_buffer_get_block(uint8_t buffer[], uint16_t size){
     }
 
     // If the rx interrupt was disabled due to lack of buffer space then re-enable it.
-    if (!rxIrqIsEnabled){
-        rxIrqIsEnabled = true;
-        uart_set_irqs_enabled(uart1, rxIrqIsEnabled, txIrqIsEnabled);
+    if (!rxBuffer.irqIsEnabled){
+        rxBuffer.irqIsEnabled = true;
+        uart_set_irqs_enabled(uart1, rxBuffer.irqIsEnabled, txBuffer.irqIsEnabled);
         irq_set_pending(UART1_IRQ);
     }
 
@@ -172,9 +170,9 @@ uint16_t circ_buffer_put_block(uint8_t buffer[], uint16_t size){
 
     if (count > 0){
         // If the tx interrupt was disabled due to lack of chars in the buffer then re-enable it.
-        if (!txIrqIsEnabled){
-            txIrqIsEnabled = true;
-            uart_set_irqs_enabled(uart1, rxIrqIsEnabled, txIrqIsEnabled);
+        if (!txBuffer.irqIsEnabled){
+            txBuffer.irqIsEnabled = true;
+            uart_set_irqs_enabled(uart1, rxBuffer.irqIsEnabled, txBuffer.irqIsEnabled);
             //irq_set_pending(UART1_IRQ);
         }
     
@@ -207,7 +205,7 @@ static volatile uint32_t uart1_irq_count = 0;
 
 static void uart1_irq_handler(void){
     ++uart1_irq_count;
-    if (rxIrqIsEnabled && uart_is_readable(uart1)){
+    if (rxBuffer.irqIsEnabled && uart_is_readable(uart1)){
         if (space_in_buffer(&rxBuffer)){
             // Get char from UART
             char c = uart_getc(uart1);
@@ -219,13 +217,12 @@ static void uart1_irq_handler(void){
             btstack_run_loop_poll_data_sources_from_irq();
         } else {
             // No space in the Rx buffer, disable the UART Rx interrupt
-            rxIrqIsEnabled = false;
-            uart_set_irqs_enabled(uart1, rxIrqIsEnabled, txIrqIsEnabled);
+            rxBuffer.irqIsEnabled = false;
+            uart_set_irqs_enabled(uart1, rxBuffer.irqIsEnabled, txBuffer.irqIsEnabled);
         }
     }
 
-    if (txIrqIsEnabled) {
-        uint16_t count = 0;
+    if (txBuffer.irqIsEnabled) {
         while (uart_is_writable(uart1) && chars_in_buffer(&txBuffer)){
             // Get the next char from the Tx circular buffer
             char c = circ_buffer_get(&txBuffer);
@@ -235,8 +232,8 @@ static void uart1_irq_handler(void){
         }
         if (!chars_in_buffer(&txBuffer)){
             // Nothing in the Tx buffer, disable the UART Tx interrupt
-            txIrqIsEnabled = false;
-            uart_set_irqs_enabled(uart1, rxIrqIsEnabled, txIrqIsEnabled);
+            txBuffer.irqIsEnabled = false;
+            uart_set_irqs_enabled(uart1, rxBuffer.irqIsEnabled, txBuffer.irqIsEnabled);
         }
     }
 }
@@ -248,11 +245,14 @@ static void uart_data_source_setup(void){
     btstack_run_loop_add_data_source(&uart_data_source);
     btstack_run_loop_enable_data_source_callbacks(&uart_data_source, DATA_SOURCE_CALLBACK_POLL);
 
+    rxBuffer.irqIsEnabled = true;
+    txBuffer.irqIsEnabled = false;
+
     // And set up and enable the interrupt handlers
     irq_set_exclusive_handler(UART1_IRQ, uart1_irq_handler);
     irq_set_enabled(UART1_IRQ, true);
 
-    uart_set_irqs_enabled(uart1, rxIrqIsEnabled, txIrqIsEnabled);
+    uart_set_irqs_enabled(uart1, rxBuffer.irqIsEnabled, txBuffer.irqIsEnabled);
 }
 /* LISTING_END */
 
@@ -314,7 +314,7 @@ static void packet_handler (uint8_t packet_type, uint16_t channel, uint8_t *pack
         9600,   // 3
         19200,  // 4
         38400,  // 5
-        57600,  // 6,
+        57600,  // 6
         115200, // 7
         230400  // 8
     };
