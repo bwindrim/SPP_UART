@@ -7,9 +7,9 @@
 #include "picow_bt_example_common.h"
 
 // UART defines
-// By default the stdout UART is `uart0`, so we will use the second one
+// By default the stdout uses uart0, so we will use the uart1
 #define UART_ID uart1
-#define BAUD_RATE 57600 // ToDo: change to 57600 for Lattice
+#define BAUD_RATE 57600
 
 // Use GPIOs 4 and 5 for UART1
 // GPIOs can be changed, see the GPIO function select table in the datasheet for information on GPIO assignments
@@ -24,29 +24,24 @@ int main(int argc, const char * argv[])
 {
     stdio_init_all();
 
+    printf("Initialising...\n");
+
     // Set up our UART
     uart_init(UART_ID, BAUD_RATE);
-    // Set the TX and RX pins by using the function select on the GPIO
-    // Set datasheet for more information on function select
     gpio_set_function(UART_TX_GPIO, GPIO_FUNC_UART);
     gpio_set_function(UART_RX_GPIO, GPIO_FUNC_UART);
-    
-    // Set UART flow control CTS/RTS, we don't want these, so turn them off
     uart_set_hw_flow(UART_ID, false, false);
-
-    // Turn on the Tx & Rx FIFOs
     uart_set_fifo_enabled(UART_ID, true);
 
-    printf("Init complete\n");
-
-    // In a default system, printf will also output via the default UART
-    
     if (cyw43_arch_init()) {
-        printf("failed to initialise cyw43_arch\n");
+        printf("...failed to initialise cyw43_arch. Terminating\n");
         return -1;
     }
 
     spp_uart_init();
+
+    printf("...init complete.\n");
+
     btstack_run_loop_execute();
 
     return 0;

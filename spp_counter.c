@@ -358,6 +358,7 @@ static void packet_handler (uint8_t packet_type, uint16_t channel, uint8_t *pack
                         uint16_t buffer_size = rfcomm_get_max_frame_size(rfcomm_channel_id);
                         // Set up data in buffer with len
                         uint16_t len = circ_buffer_get_block(buffer, buffer_size);
+                        printf("Sending %d bytes\n", len);
                         rfcomm_send_prepared(rfcomm_channel_id, len);
                     }
                     break;
@@ -376,7 +377,7 @@ static void packet_handler (uint8_t packet_type, uint16_t channel, uint8_t *pack
 
         case RFCOMM_DATA_PACKET:
 #if 1
-            printf("RCV: '");
+            printf("RCV(%d): '", size);
             for (i=0;i<size;i++){
                 putchar(packet[i]);
             }
