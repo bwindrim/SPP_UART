@@ -74,7 +74,7 @@ static void packet_handler (uint8_t packet_type, uint16_t channel, uint8_t *pack
 static uint16_t rfcomm_channel_id;
 static uint8_t  spp_service_buffer[150];
 static btstack_packet_callback_registration_t hci_event_callback_registration;
-
+static bool led_state = false;
 
 /* @section SPP Service Setup 
  *s
@@ -187,7 +187,10 @@ static void uart_handler (struct btstack_data_source *ds, btstack_data_source_ca
     switch (callback_type){
     case DATA_SOURCE_CALLBACK_POLL:
         if (chars_in_buffer(&rxBuffer)){
+            cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, false);
             rfcomm_request_can_send_now_event(rfcomm_channel_id);
+        } else {
+            cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, led_state);
         }
         break;
     case DATA_SOURCE_CALLBACK_READ:
@@ -345,6 +348,7 @@ static void packet_handler (uint8_t packet_type, uint16_t channel, uint8_t *pack
                         printf("RFCOMM channel open succeeded. New RFCOMM Channel ID %u, max frame size %u\n", rfcomm_channel_id, mtu);
                         // Set up our UART
                         uart_init(uart1, 57600);
+                        cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, led_state = true);
                     }
                     break;
 
@@ -364,6 +368,7 @@ static void packet_handler (uint8_t packet_type, uint16_t channel, uint8_t *pack
                     printf("RFCOMM channel closed\n");
                     uart_deinit(uart1);
                     rfcomm_channel_id = 0;
+                    cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, led_state = false);
                     break;
                 
                 default:
@@ -387,24 +392,6 @@ static void packet_handler (uint8_t packet_type, uint16_t channel, uint8_t *pack
     }
 }
 
-int spp_uart_init(void){
-    // inform about BTstack state
-    hci_event_callback_registration.callback = &packet_handler;
-    hci_add_event_handler(&hci_event_callback_registration);
-
-    uart_data_source_setup();
-    spp_service_setup();
-
-    gap_discoverable_control(1);
-    gap_ssp_set_io_capability(SSP_IO_CAPABILITY_DISPLAY_YES_NO);
-    gap_set_local_name("Lattice debug 0 00:00:00:00:00:00");
-
-    // turn on!
-    hci_power_control(HCI_POWER_ON);
-    
-    return 0;
-}
-
 
 int main(int argc, const char * argv[])
 {
@@ -424,7 +411,19 @@ int main(int argc, const char * argv[])
         return -1;
     }
 
-    spp_uart_init();
+    // inform about BTstack state
+    hci_event_callback_registration.callback = &packet_handler;
+    hci_add_event_handler(&hci_event_callback_registration);
+
+    uart_data_source_setup();
+    spp_service_setup();
+
+    gap_discoverable_control(1);
+    gap_ssp_set_io_capability(SSP_IO_CAPABILITY_DISPLAY_YES_NO);
+    gap_set_local_name("Lattice 2 debug 00:00:00:00:00:00");
+
+    // turn on!
+    hci_power_control(HCI_POWER_ON);
 
     printf("...init complete.\n");
 
