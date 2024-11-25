@@ -37,18 +37,6 @@
 
 #define BTSTACK_FILE__ "spp_counter.c"
 
-// *****************************************************************************
-/* EXAMPLE_START(spp_counter): SPP Server - Heartbeat Counter over RFCOMM
- *
- * @text The Serial port profile (SPP) is widely used as it provides a serial
- * port over Bluetooth. The SPP counter example demonstrates how to setup an SPP
- * service, and provide a periodic timer over RFCOMM.   
- *
- * @text Note: To test, please run the spp_counter example, and then pair from 
- * a remote device, and open the Virtual Serial Port.
- */
-// *****************************************************************************
-
 #include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -58,8 +46,6 @@
 
 #include "hardware/uart.h"
 #include "hardware/irq.h"
-
-//#define ENABLE_CLASSIC
 
 #include "btstack.h"
 
@@ -87,7 +73,6 @@ static btstack_packet_callback_registration_t hci_event_callback_registration;
  * To preserve valuable RAM, the result could be stored as constant data inside the ROM.   
  */
 
-/* LISTING_START(SPPSetup): SPP service setup */ 
 static void spp_service_setup(void){
 
     // register for HCI events
@@ -111,7 +96,6 @@ static void spp_service_setup(void){
     sdp_register_service(spp_service_buffer);
     printf("SDP service record size: %u\n", de_get_len(spp_service_buffer));
 }
-/* LISTING_END */
 
 
 struct CircBuffer{
@@ -244,7 +228,6 @@ static void uart_data_source_setup(void){
 
     uart_set_irqs_enabled(uart1, rxBuffer.irqIsEnabled, txBuffer.irqIsEnabled);
 }
-/* LISTING_END */
 
 
 /* @section Bluetooth Logic 
@@ -285,12 +268,9 @@ static void uart_data_source_setup(void){
  * on the rfcomm_cid that is include
 
  */ 
-
-/* LISTING_START(SppServerPacketHandler): SPP Server - Heartbeat Counter over RFCOMM */
 static void packet_handler (uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size){
     UNUSED(channel);
 
-/* LISTING_PAUSE */ 
     bd_addr_t event_addr;
     uint8_t   rfcomm_channel_nr;
     uint16_t  mtu;
@@ -312,7 +292,6 @@ static void packet_handler (uint8_t packet_type, uint16_t channel, uint8_t *pack
     switch (packet_type) {
         case HCI_EVENT_PACKET:
             switch (hci_event_packet_get_type(packet)) {
-/* LISTING_RESUME */ 
                 case HCI_EVENT_PIN_CODE_REQUEST:
                     // inform about pin code request
                     printf("Pin code request - using '0000'\n");
@@ -351,6 +330,7 @@ static void packet_handler (uint8_t packet_type, uint16_t channel, uint8_t *pack
                         uart_init(uart1, 57600);
                     }
                     break;
+
                 case RFCOMM_EVENT_CAN_SEND_NOW:
                     if (chars_in_buffer(&rxBuffer)){
                         rfcomm_reserve_packet_buffer();
@@ -363,7 +343,6 @@ static void packet_handler (uint8_t packet_type, uint16_t channel, uint8_t *pack
                     }
                     break;
 
-/* LISTING_PAUSE */                 
                 case RFCOMM_EVENT_CHANNEL_CLOSED:
                     printf("RFCOMM channel closed\n");
                     uart_deinit(uart1);
@@ -389,9 +368,7 @@ static void packet_handler (uint8_t packet_type, uint16_t channel, uint8_t *pack
         default:
             break;
     }
-/* LISTING_RESUME */ 
 }
-/* LISTING_END */
 
 int spp_uart_init(void){
     // inform about BTstack state
@@ -410,5 +387,4 @@ int spp_uart_init(void){
     
     return 0;
 }
-/* EXAMPLE_END */
 
