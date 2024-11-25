@@ -35,7 +35,7 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(SPP_UART main.c spp_counter.c picow_bt_example_common.c)
+add_executable(SPP_UART main.c picow_bt_example_common.c)
 
 pico_set_program_name(SPP_UART "SPP_UART")
 pico_set_program_version(SPP_UART "0.1")
