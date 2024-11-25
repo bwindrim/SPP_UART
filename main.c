@@ -35,7 +35,7 @@
  *
  */
 
-#define BTSTACK_FILE__ "spp_counter.c"
+#define BTSTACK_FILE__ "spp_uart.c"
 
 #include <inttypes.h>
 #include <stdint.h>
@@ -54,7 +54,6 @@
 #include "btstack_run_loop.h"
 #include "pico/cyw43_arch.h"
 #include "pico/stdlib.h"
-#include "picow_bt_example_common.h"
 
 // UART defines
 // By default the stdout uses uart0, so we will use the uart1
@@ -420,7 +419,7 @@ int main(int argc, const char * argv[])
 
     gap_discoverable_control(1);
     gap_ssp_set_io_capability(SSP_IO_CAPABILITY_DISPLAY_YES_NO);
-    gap_set_local_name("Lattice 2 debug 00:00:00:00:00:00");
+    gap_set_local_name("Lattice 0 debug 00:00:00:00:00:00");
 
     // turn on!
     hci_power_control(HCI_POWER_ON);
