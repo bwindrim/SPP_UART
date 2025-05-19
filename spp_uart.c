@@ -62,10 +62,10 @@
 
 // Use GPIOs 4 and 5 for UART1
 // GPIOs can be changed, see the GPIO function select table in the datasheet for information on GPIO assignments
-#define UART_TX_GPIO 4
-#define UART_RX_GPIO 5
-#define UART_CTS_GPIO 6
-#define UART_RTS_GPIO 7
+#define UART_TX_GPIO 20
+#define UART_RX_GPIO 21
+#define UART_CTS_GPIO 22
+#define UART_RTS_GPIO 23
 
 
 static void packet_handler (uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size);
